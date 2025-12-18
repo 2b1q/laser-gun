@@ -106,6 +106,7 @@ end
 -- =========================
 
 local beepTimer = tmr.create()
+local soundBusy = false
 
 local function play_tone(interval_ms, duration_ms, cb)
   beepTimer:stop()
@@ -129,12 +130,19 @@ local function play_tone(interval_ms, duration_ms, cb)
   end)
 end
 
-local function play_pattern(pattern)
+local function play_pattern(pattern, onDone)
+  soundBusy = true
   local i = 1
+
+  local function finish()
+    gpio.write(PIN_BUZZER, gpio.LOW)
+    soundBusy = false
+    if onDone then onDone() end
+  end
 
   local function step()
     if i > #pattern then
-      gpio.write(PIN_BUZZER, gpio.LOW)
+      finish()
       return
     end
 
@@ -172,6 +180,7 @@ end
 -- =========================
 
 local function sound_shot()
+  if soundBusy then return end
   play_pattern({
     { tone = 10, ms = 22 }, { pause = 12 },
     { tone = 12, ms = 18 }, { pause = 14 },
@@ -185,6 +194,7 @@ local function sound_shot()
 end
 
 local function sound_empty()
+  if soundBusy then return end
   play_pattern({
     { tone = 12, ms = 22 }, { pause = 60 },
     { tone = 9,  ms = 90 },
@@ -192,6 +202,7 @@ local function sound_empty()
 end
 
 local function sound_reload_start()
+  if soundBusy then return end
   play_pattern({
     { tone = 11, ms = 35 }, { pause = 40 },
     { tone = 8,  ms = 45 }, { pause = 30 },
@@ -200,6 +211,7 @@ local function sound_reload_start()
 end
 
 local function sound_reload_done()
+  if soundBusy then return end
   play_pattern({
     { tone = 4, ms = 45 }, { pause = 30 },
     { tone = 2, ms = 140 },
@@ -207,6 +219,7 @@ local function sound_reload_done()
 end
 
 local function sound_reload_blocked()
+  if soundBusy then return end
   play_pattern({
     { tone = 7, ms = 60 }, { pause = 60 },
     { tone = 7, ms = 60 }, { pause = 60 },
@@ -214,35 +227,42 @@ local function sound_reload_blocked()
   })
 end
 
--- Countdown beeps (3..2..1..0)
+-- Countdown beeps:
+-- 3 = triple high pip
+-- 2 = double mid pip
+-- 1 = single low pip
+-- 0 = "ready jingle"
 local function sound_countdown_tick(n)
+  if soundBusy then return end
+
   if n == 3 then
     play_pattern({
-      { tone = 6, ms = 35 }, { pause = 55 },
-      { tone = 6, ms = 35 }, { pause = 55 },
-      { tone = 6, ms = 35 },
+      { tone = 3, ms = 22 }, { pause = 90 },
+      { tone = 3, ms = 22 }, { pause = 90 },
+      { tone = 3, ms = 22 },
     })
     return
   end
 
   if n == 2 then
     play_pattern({
-      { tone = 5, ms = 45 }, { pause = 70 },
-      { tone = 5, ms = 45 },
+      { tone = 4, ms = 28 }, { pause = 120 },
+      { tone = 4, ms = 28 },
     })
     return
   end
 
   if n == 1 then
     play_pattern({
-      { tone = 4, ms = 70 },
+      { tone = 6, ms = 40 },
     })
     return
   end
 
-  -- n == 0: "ready" chirp
+  -- n == 0: ready jingle (two quick notes + confirm note)
   play_pattern({
-    { tone = 3, ms = 35 }, { pause = 20 },
+    { tone = 5, ms = 20 }, { pause = 25 },
+    { tone = 4, ms = 22 }, { pause = 25 },
     { tone = 2, ms = 90 },
   })
 end
@@ -349,7 +369,6 @@ local function poll_buttons()
 end
 
 apply_state()
-
 tmr.create():alarm(20, tmr.ALARM_AUTO, poll_buttons)
 
 print("Laser gun ready. Bullets:", bullets)
