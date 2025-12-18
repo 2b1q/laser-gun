@@ -170,47 +170,57 @@ local function blink_leds(times, interval_ms, useGreen, useRed)
 end
 
 -- =========================
--- Sound effects (more "gamey")
+-- Sound effects (realistic click + laser, but SAFE)
 -- =========================
 
 local function sound_shot()
-  -- Short sci-fi "zap": quick up then down chirp
+  -- 1) Mechanical click: two low short ticks
+  -- 2) Ignition crack: very short high chirps
+  -- 3) Laser pew: descending "pew"
   play_pattern({
-    { tone = 2, ms = 18 }, { pause = 10 },
-    { tone = 1, ms = 22 }, { pause = 8  },
-    { tone = 2, ms = 16 }, { pause = 6  },
-    { tone = 3, ms = 20 },
+    -- click-click (low)
+    { tone = 10, ms = 22 }, { pause = 12 },
+    { tone = 12, ms = 18 }, { pause = 14 },
+
+    -- ignition crackle (high short)
+    { tone = 2, ms = 10 }, { pause = 6 },
+    { tone = 1, ms = 12 }, { pause = 6 },
+    { tone = 2, ms = 10 }, { pause = 10 },
+
+    -- pew (descending)
+    { tone = 1, ms = 28 }, { pause = 8 },
+    { tone = 2, ms = 36 }, { pause = 8 },
+    { tone = 3, ms = 55 },
   })
 end
 
 local function sound_empty()
-  -- "dry click" style: two low ticks
+  -- dry trigger + "no ammo" thunk
   play_pattern({
-    { tone = 8, ms = 45 }, { pause = 60 },
-    { tone = 9, ms = 70 },
+    { tone = 12, ms = 22 }, { pause = 60 },
+    { tone = 9,  ms = 90 },
   })
 end
 
 local function sound_reload_start()
-  -- "charging" ramp
+  -- mag out/in: low + mid click
   play_pattern({
-    { tone = 5, ms = 70 }, { pause = 25 },
-    { tone = 4, ms = 70 }, { pause = 25 },
-    { tone = 3, ms = 90 },
+    { tone = 11, ms = 35 }, { pause = 40 },
+    { tone = 8,  ms = 45 }, { pause = 30 },
+    { tone = 6,  ms = 60 },
   })
 end
 
 local function sound_reload_done()
-  -- "confirm" melody
+  -- confirm: short + long
   play_pattern({
-    { tone = 3, ms = 60 }, { pause = 40 },
-    { tone = 2, ms = 70 }, { pause = 35 },
-    { tone = 1, ms = 140 },
+    { tone = 4, ms = 45 }, { pause = 30 },
+    { tone = 2, ms = 140 },
   })
 end
 
 local function sound_reload_blocked()
-  -- "error" triple beep
+  -- magazine full: triple warning
   play_pattern({
     { tone = 7, ms = 60 }, { pause = 60 },
     { tone = 7, ms = 60 }, { pause = 60 },
@@ -266,8 +276,7 @@ local function start_reload()
   -- Block reload when magazine is full
   if bullets >= MAX_BULLETS then
     sound_reload_blocked()
-    -- Visual feedback: quick blink both LEDs
-    blink_leds(3, 80, true, true)
+    blink_leds(3, 80, true, true) -- blink both LEDs
     return
   end
 
